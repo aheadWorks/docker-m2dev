@@ -2,6 +2,7 @@ import click
 import subprocess
 import shlex
 import time
+import pathlib
 
 
 @click.group()
@@ -34,7 +35,9 @@ def serve():
     click.echo("Starting crond...")
     subprocess.check_call("crond")
     click.echo("Starting nginx & fpm...")
-    subprocess.check_call("ssh-keygen -A", shell=True)
+    # Generate new host keys if they not exist
+    if not pathlib.Path('/etc/ssh/ssh_host_rsa_key').exists():
+        subprocess.check_call("ssh-keygen -A", shell=True)
     subprocess.check_call("/usr/sbin/sshd -D -e & nginx -g \"daemon off;\" & docker-php-entrypoint php-fpm -R", shell=True)
 
 

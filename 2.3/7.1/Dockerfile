@@ -47,6 +47,7 @@ RUN apk add --no-cache mariadb-client unzip openssh-server \
     && composer clearcache \
     && rm -rf /var/lib/mysql
 
+RUN ssh-keygen -A
 
 COPY assets/nginx.conf /etc/nginx/conf.d/default.conf
 
