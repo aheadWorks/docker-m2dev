@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+docker build -t $IMAGE_NAME -f $DOCKERFILE_PATH . --build-arg COMPOSER_AUTH=$COMPOSER_AUTH --build-arg MAGENTO_EDITION=$MAGENTO_EDITION

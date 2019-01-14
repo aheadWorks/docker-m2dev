@@ -1,0 +1,41 @@
+services:
+  db:
+    environment:
+    - MYSQL_ROOT_PASSWORD=myrootpassword
+    - MYSQL_USER=magento
+    - MYSQL_PASSWORD=magento
+    - MYSQL_DATABASE=magento
+    image: mysql:5.6.42
+    volumes:
+    - data-db:/var/lib/mysql/data
+  web:
+    environment:
+    - MAIL_HOST=mail
+    - MAGENTO_URL=http://local.magento:1180
+    - MAGENTO_TIMEZONE=Pacific/Auckland
+    - MAGENTO_DEFAULT_CURRENCY=USD
+    - MAGENTO_ADMIN_FIRSTNAME=Admin
+    - MAGENTO_ADMIN_LASTNAME=MyStore
+    - MAGENTO_ADMIN_EMAIL=amdin@example.com
+    - MAGENTO_ADMIN_USERNAME=master
+    - MAGENTO_ADMIN_PASSWORD=master123
+    - MAGENTO_ROOT=/var/www/html
+    - MAGENTO_LANGUAGE=en_GB
+    - MYSQL_HOST=db
+    - MYSQL_ROOT_PASSWORD=myrootpassword
+    - MYSQL_USER=magento
+    - MYSQL_PASSWORD=magento
+    - MYSQL_DATABASE=magento
+    - AUTO_SETUP=1
+    - COMPOSER_AUTH=${COMPOSER_AUTH}
+    - SSH_PASSWORD=root1
+    image: aheadworks/m2dev-ee:2.3.0-sampledata-7.2
+    ports:
+    - "1180:80"
+    - "1122:22"
+    volumes:
+    - data-files:/var/www/html
+version: '3.2'
+volumes:
+  data-db: null
+  data-files: null
