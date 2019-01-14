@@ -4,4 +4,5 @@ echo "==> Dockerfile: $DOCKERFILE_PATH"
 echo "==> Image name: $IMAGE_NAME"
 echo "==> Magento edition: $MAGENTO_EDITION"
 
+echo docker build --build-arg COMPOSER_AUTH=$COMPOSER_AUTH --build-arg MAGENTO_EDITION=$MAGENTO_EDITION -f $DOCKERFILE_PATH -t $IMAGE_NAME .
 docker build --build-arg COMPOSER_AUTH=$COMPOSER_AUTH --build-arg MAGENTO_EDITION=$MAGENTO_EDITION -f $DOCKERFILE_PATH -t $IMAGE_NAME .
