@@ -14,9 +14,7 @@ RUN crontab /crontab
 COPY assets/create-install-dump.sh /tmp/create-install-dump.sh
 ADD patch /.patch
 
-RUN apk add --no-cache mariadb-client unzip openssh-server
-
-RUN apk add --no-cache mariadb-client unzip openssh-server \
+RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server \
     && VER=""\
     && rm -rf /var/www/html/* \
     && if [ "${MAGENTO_VERSION}" ] ; then\
