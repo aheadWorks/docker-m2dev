@@ -12,6 +12,7 @@ def cli(ctx):
         'MAGENTO_ROOT': '/var/www/html',
         'WWW_USER': 'root'
     }
+    subprocess.check_call("sh /update-host-machine.sh", shell=True)
     pass
 
 def execute(path, user, cmd):
