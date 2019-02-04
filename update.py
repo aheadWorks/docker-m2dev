@@ -24,7 +24,18 @@ php_deps = {
     "2.1": ["7.0", "5.6"]
 }
 
-versions_to_update = ["2.3.0", "2.2.7", "2.1.16"]
+versions_to_update = ["2.3.0", "2.2.7", "2.2.6",  "2.1.16"]
+
+
+def is_latest_version(version, all_versions):
+
+    family = StrictVersion(version).version[0:2]
+    family_vers = [x for x in sorted(all_versions, key=StrictVersion) if StrictVersion(x).version[0:2] == family]
+
+    if family_vers[-1] == StrictVersion(version):
+        return True
+    return False
+
 
 with open('Dockerfile.template') as df:
     contents = df.read()
@@ -32,9 +43,11 @@ with open('Dockerfile.template') as df:
     for ver in versions_to_update:
 
         v = StrictVersion(ver)
-        folder_name = ".".join(map(str, v.version[0:2]))
+        family = ".".join(map(str, v.version[0:2]))
 
-        for php_ver, with_sampledata, with_xdebug in product(php_deps[folder_name], ('', '1'), ('', '1')):
+        folder_name = family if is_latest_version(ver, versions_to_update) else ver
+
+        for php_ver, with_sampledata, with_xdebug in product(php_deps[family], ('', '1'), ('', '1')):
             build_args = {
                 'BASE_VERSION': php_ver + ('-xdebug' if with_xdebug else ''),
                 'MAGENTO_VERSION': ver,
