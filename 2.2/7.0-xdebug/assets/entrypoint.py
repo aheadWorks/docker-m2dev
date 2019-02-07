@@ -50,6 +50,7 @@ def serve():
 @click.option('--mysql-user', envvar="MYSQL_USER", required=True)
 @click.option('--mysql-password', envvar="MYSQL_PASSWORD", required=True)
 @click.option('--mysql-database', envvar="MYSQL_DATABASE", required=True)
+@click.option('--mysql-prefix', envvar="MYSQL_PREFIX", required=True, default="")
 @click.option('--magento-url', envvar='MAGENTO_URL')
 @click.option('--magento-language', envvar='MAGENTO_LANGUAGE')
 @click.option('--magento-default-currency', envvar='MAGENTO_DEFAULT_CURRENCY')
@@ -60,7 +61,7 @@ def serve():
 @click.option('--magento-admin-username', envvar='MAGENTO_ADMIN_USERNAME')
 @click.option('--magento-admin-password', envvar='MAGENTO_ADMIN_PASSWORD')
 @click.option('--dump-file', envvar="DUMP_FILE", default='/var/www/dump.sql', required=True)
-def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysql_password, mysql_database, magento_url,
+def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysql_password, mysql_database, mysql_prefix, magento_url,
            magento_language, magento_default_currency, magento_timezone,
            magento_admin_firstname, magento_admin_lastname, magento_admin_email, magento_admin_username, magento_admin_password,
            dump_file):
@@ -96,12 +97,16 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
         time.sleep(1)
 
     click.echo("Setting DB credentials")
-    set_config_values(ctx.obj['MAGENTO_ROOT'], ctx.obj['WWW_USER'], opts={
+    opts = {
         'db-host': mysql_host,
         'db-name': mysql_database,
         'db-user': mysql_user,
         'db-password': mysql_password
-    })
+    }
+    if mysql_prefix:
+        opts['db-prefix'] = mysql_prefix
+
+    set_config_values(ctx.obj['MAGENTO_ROOT'], ctx.obj['WWW_USER'], opts=opts)
 
     try:
         tables = subprocess.check_output((
@@ -120,8 +125,9 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
     except subprocess.CalledProcessError as e:
         tables = ''
 
-    if 'admin_user' not in str(tables):
+    if (mysql_prefix + 'admin_user') not in str(tables):
         click.echo("DB is empty(or DB %s doesn't exist). Will import dump" % mysql_database)
+
         subprocess.check_output(
             "mysql -h{mysql_host} -u{mysql_user} -p{mysql_password} {mysql_database} < {dump_file}".format(
                 mysql_user=mysql_user,
@@ -132,14 +138,33 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
             ),
             shell=True
         )
+        if(mysql_prefix):
+            # Apply prefix to databases imported from dump
+            q = "select concat('rename table ', db, '.', tb, ' to ', db, '.', prfx, tb, ';')" \
+                " from (select table_schema db, table_name tb from information_schema.tables where" \
+                " table_schema in ('{mysql_database}')) A, (SELECT '{mysql_prefix}' prfx) B" \
+                .format(mysql_database=mysql_database, mysql_prefix=mysql_prefix)
+
+            subprocess.check_output(
+                "mysql -h{mysql_host} -u{mysql_user} -p{mysql_password} -AN -e\"{query}\""
+                " | mysql -h{mysql_host} -u{mysql_user} -p{mysql_password}".format(
+                    mysql_user=mysql_user,
+                    mysql_host=mysql_host,
+                    mysql_password=mysql_password,
+                    mysql_database=mysql_database,
+                    query=q
+                ),
+                shell=True
+            )
 
     click.echo("Re-creating admin account")
     subprocess.check_output(
-        'mysql -h{host} -u{user} -p{password} -e "USE {database}; DELETE FROM admin_user"'.format(
+        'mysql -h{host} -u{user} -p{password} -e "USE {database}; DELETE FROM {mysql_prefix}admin_user"'.format(
             host=mysql_host,
             user=mysql_user,
             password=mysql_password,
-            database=mysql_database
+            database=mysql_database,
+            mysql_prefix=mysql_prefix
         ),
         shell=True
     )
