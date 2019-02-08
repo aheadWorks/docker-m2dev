@@ -3,7 +3,7 @@ import subprocess
 import shlex
 import time
 import pathlib
-
+import re
 
 @click.group()
 @click.pass_context
@@ -15,19 +15,21 @@ def cli(ctx):
     subprocess.check_call("sh /update-host-machine.sh", shell=True)
     pass
 
+
 def execute(path, user, cmd):
     cmd = 'su {user} -c "php {path}/bin/magento %s"' % cmd
     return subprocess.check_output(cmd.format(user=user, path=path), shell=True)
 
 
 def set_password(user, password):
-    return subprocess.check_output("echo \"{user}:{password}\" | chpasswd".format(user=user, password=password), shell=True)
+    return subprocess.check_output("echo \"{user}:{password}\" | chpasswd".format(user=user, password=password),
+                                   shell=True)
 
 
 def set_config_values(path, user, mode='config', opts={}):
     params = " ".join(["--{k}={v}".format(k=shlex.quote(k), v=shlex.quote(v)) for k, v in opts.items()])
     cmd = 'setup:{mode}:set -n {params}'.format(user=user, path=path, params=params,
-                                                                                   mode=mode)
+                                                mode=mode)
     return execute(path, user, cmd)
 
 
@@ -39,7 +41,8 @@ def serve():
     # Generate new host keys if they not exist
     if not pathlib.Path('/etc/ssh/ssh_host_rsa_key').exists():
         subprocess.check_call("ssh-keygen -A", shell=True)
-    subprocess.check_call("/usr/sbin/sshd -D -e & nginx -g \"daemon off;\" & docker-php-entrypoint php-fpm -R", shell=True)
+    subprocess.check_call("/usr/sbin/sshd -D -e & nginx -g \"daemon off;\" & docker-php-entrypoint php-fpm -R",
+                          shell=True)
 
 
 @cli.command()
@@ -61,11 +64,12 @@ def serve():
 @click.option('--magento-admin-username', envvar='MAGENTO_ADMIN_USERNAME')
 @click.option('--magento-admin-password', envvar='MAGENTO_ADMIN_PASSWORD')
 @click.option('--dump-file', envvar="DUMP_FILE", default='/var/www/dump.sql', required=True)
-def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysql_password, mysql_database, mysql_prefix, magento_url,
-           magento_language, magento_default_currency, magento_timezone,
-           magento_admin_firstname, magento_admin_lastname, magento_admin_email, magento_admin_username, magento_admin_password,
-           dump_file):
-
+def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysql_password, mysql_database,
+                     mysql_prefix, magento_url,
+                     magento_language, magento_default_currency, magento_timezone,
+                     magento_admin_firstname, magento_admin_lastname, magento_admin_email, magento_admin_username,
+                     magento_admin_password,
+                     dump_file):
     # Set root & primary user password
     click.echo("Setting passwords for user %s" % ctx.obj['WWW_USER'])
     set_password(ctx.obj['WWW_USER'], ssh_password)
@@ -138,11 +142,41 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
             ),
             shell=True
         )
-        if(mysql_prefix):
+        if (mysql_prefix):
+
+            def query(q, fn=subprocess.check_call, pipe=""):
+                """
+                Perform a query and return result as a string
+                :param q:
+                :param fn:
+                :return str|int:
+                """
+                params = dict(
+                     mysql_user=mysql_user,
+                     mysql_host=mysql_host,
+                     mysql_password=mysql_password,
+                     mysql_database=mysql_database,
+                     mysql_prefix=mysql_prefix
+                )
+
+                _query = q. format(**params)
+                _query = _query.replace("`", "\`")
+                _cmd = "mysql -h{mysql_host} -u{mysql_user} -p{mysql_password} -ANrs" \
+                                          " -e\"{query}\"".format(query=_query, **params)
+                if pipe:
+                    _cmd = '%s | %s' % (_cmd, pipe)
+
+                out = fn(_cmd, shell=True)
+                if isinstance(out, bytes):
+                    return out.decode()
+                return out
+
+
             # Apply prefix to databases imported from dump
+            click.echo("Adding prefix %s to tables" % mysql_prefix)
             q = "select concat('rename table ', db, '.', tb, ' to ', db, '.', prfx, tb, ';')" \
                 " from (select table_schema db, table_name tb from information_schema.tables where" \
-                " table_schema in ('{mysql_database}')) A, (SELECT '{mysql_prefix}' prfx) B" \
+                " table_schema in ('{mysql_database}') and table_type='BASE TABLE') A, (SELECT '{mysql_prefix}' prfx) B" \
                 .format(mysql_database=mysql_database, mysql_prefix=mysql_prefix)
 
             subprocess.check_output(
@@ -156,6 +190,20 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
                 ),
                 shell=True
             )
+            click.echo("Patching sales_sequence_meta table to fit DB prefix")
+            query("UPDATE `{mysql_database}`.`{mysql_prefix}sales_sequence_meta` SET sequence_table=CONCAT('{mysql_prefix}', sequence_table)")
+
+            click.echo("Patching views to fit DB prefix")
+            views = query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS WHERE"
+                                          " TABLE_SCHEMA = '{mysql_database}'", fn=subprocess.check_output).split("\n")
+            views = list(filter(None, views))
+
+            for v in views:
+                crv = query("SHOW CREATE VIEW {mysql_database}.%s" % v, fn=subprocess.check_output, pipe="cut -f2")
+                crv = re.sub("`" + mysql_database + "`\.`([^`]+)`", "`" + mysql_database + "`.`" + mysql_prefix + "\\1`", crv)
+                click.echo("Re-creating view: %s%s" % (mysql_prefix, v))
+                query(crv)
+                query("DROP VIEW IF EXISTS {mysql_database}.%s" % v)
 
     click.echo("Re-creating admin account")
     subprocess.check_output(
@@ -203,7 +251,7 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
 
     click.echo("Cleaning up cache")
     execute(ctx.obj['MAGENTO_ROOT'],
-        ctx.obj['WWW_USER'], 'cache:clean')
+            ctx.obj['WWW_USER'], 'cache:clean')
 
     serve()
 
