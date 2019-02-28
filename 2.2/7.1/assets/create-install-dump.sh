@@ -21,7 +21,8 @@ MYSQL_PASSWORD=root
 MYSQL_DATABASE=magento
 MYSQL_ALLOW_EMPTY_PASSWORD=yes
 
-mysql_install_db --user=root
+rm -R /var/lib/mysql/*
+mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
 
 if [ ! -d "/run/mysqld" ]; then
     mkdir -p /run/mysqld
