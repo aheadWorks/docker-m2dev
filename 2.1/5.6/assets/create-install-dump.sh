@@ -51,6 +51,8 @@ EOF
 /usr/bin/mysqld --user=root --console &
 sleep 5
 
-php -f /var/www/html/bin/magento setup:install --base-url=$MAGENTO_URL --use-rewrites=${MAGENTO_USE_REWRITES} --backend-frontname=admin --language=$MAGENTO_LANGUAGE --timezone=$MAGENTO_TIMEZONE --currency=$MAGENTO_DEFAULT_CURRENCY --db-name=$MYSQL_DATABASE --db-user=root --db-host=127.0.0.1 --use-secure=0 --base-url-secure=0 --use-secure-admin=0 --admin-firstname=$MAGENTO_ADMIN_FIRSTNAME --admin-lastname=$MAGENTO_ADMIN_LASTNAME --admin-email=$MAGENTO_ADMIN_EMAIL --admin-user=$MAGENTO_ADMIN_USERNAME --admin-password=$MAGENTO_ADMIN_PASSWORD
+echo 'pdo_mysql.default_socket = /run/mysqld/mysqld.sock' >> /usr/local/etc/php/conf.d/docker-php-ext-pdo_mysql.ini
+
+php -f /var/www/html/bin/magento setup:install --base-url=$MAGENTO_URL --use-rewrites=${MAGENTO_USE_REWRITES} --backend-frontname=admin --language=$MAGENTO_LANGUAGE --timezone=$MAGENTO_TIMEZONE --currency=$MAGENTO_DEFAULT_CURRENCY --db-name=$MYSQL_DATABASE --db-user=root --db-host=localhost --use-secure=0 --base-url-secure=0 --use-secure-admin=0 --admin-firstname=$MAGENTO_ADMIN_FIRSTNAME --admin-lastname=$MAGENTO_ADMIN_LASTNAME --admin-email=$MAGENTO_ADMIN_EMAIL --admin-user=$MAGENTO_ADMIN_USERNAME --admin-password=$MAGENTO_ADMIN_PASSWORD
 
 mysqldump -u$MYSQL_USER magento | sed -e 's/DEFINER[ ]*=[ ]*[^*]*\*/\*/' | sed -e 's/DEFINER[ ]*=[ ]*[^*]*PROCEDURE/PROCEDURE/' | sed -e 's/DEFINER[ ]*=[ ]*[^*]*FUNCTION/FUNCTION/'> /var/www/dump.sql
