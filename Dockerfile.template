@@ -36,6 +36,7 @@ RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server \
     && rm -rf /.patch \
     && mkdir /run/sshd \
     && sed -i s/#PermitRootLogin.*/PermitRootLogin\ yes/ /etc/ssh/sshd_config \
+    && sed -i s/AllowTcpForwarding.*/AllowTcpForwarding\ yes/ /etc/ssh/sshd_config \
     && apk del .mysql \
     && composer clearcache \
     && rm -rf /var/lib/mysql
