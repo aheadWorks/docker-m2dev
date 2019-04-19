@@ -24,7 +24,7 @@ php_deps = {
     "2.1": ["7.0", "5.6"]
 }
 
-versions_to_update = ["2.3.1", "2.3.0", "2.2.8", "2.2.7", "2.2.6", "2.2.0",  "2.1.16"]
+versions_to_update = ["2.3.1", "2.3.0", "2.2.8", "2.2.7", "2.2.6", "2.2.0",  "2.1.17"]
 
 
 def is_latest_version(version, all_versions):
