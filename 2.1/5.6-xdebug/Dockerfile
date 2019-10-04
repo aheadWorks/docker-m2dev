@@ -30,7 +30,7 @@ RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server \
     && composer config repositories.magento composer https://repo.magento.com/ \
     && chmod u+x bin/magento \
     && composer install \
-    && python3 -c "from pathlib import Path as p; from distutils.dir_util import copy_tree; from distutils.version import StrictVersion; list(map(lambda x: copy_tree(str(x), '/var/www/html'), [x for x in p('/.patch').glob('*') if StrictVersion(str(x.name)) == '${MAGENTO_VERSION}']))" \
+    && python3 -c "from pathlib import Path as p; from distutils.dir_util import copy_tree; list(map(lambda x: copy_tree(str(x), '/var/www/html'), [x for x in p('/.patch').glob('*') if str(x.name) == '${MAGENTO_VERSION}']))" \
     && if [ "$WITH_SAMPLEDATA" ] ; then \
         mkdir -p /var/www/html/var/composer_home \
         && /var/www/html/bin/magento sampledata:deploy; \
