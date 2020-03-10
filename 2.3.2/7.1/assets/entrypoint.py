@@ -21,6 +21,10 @@ def execute(path, user, cmd):
     return subprocess.check_output(cmd.format(user=user, path=path), shell=True)
 
 
+def set_ssh(user):
+    return subprocess.check_output('su {user} -c "sh /inject-ssh-keys.sh"'.format(user=user), shell=True)
+
+
 def set_password(user, password):
     return subprocess.check_output("echo \"{user}:{password}\" | chpasswd".format(user=user, password=password),
                                    shell=True)
@@ -73,6 +77,7 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
     # Set root & primary user password
     click.echo("Setting passwords for user %s" % ctx.obj['WWW_USER'])
     set_password(ctx.obj['WWW_USER'], ssh_password)
+    set_ssh(ctx.obj['WWW_USER'])
 
     click.echo("Waiting for db at %s:%s" % (mysql_host, mysql_port))
 
