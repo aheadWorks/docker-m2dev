@@ -104,3 +104,11 @@ volumes:
   data-db: null
   data-files: null
 ```
+
+## Contributing
+
+### Adding new Magento version
+
+1. Edit `update.py` file and add required version to `versions_to_update` list
+2. Ensure `php_deps` variable contains Magento family you are adding and add one if it is not listed yet
+3. Run `python3 update.py` to fix the changes and generate required files and folders
