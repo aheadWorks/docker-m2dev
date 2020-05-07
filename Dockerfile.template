@@ -30,7 +30,7 @@ RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server \
     && python3 -c "from pathlib import Path as p; from distutils.dir_util import copy_tree; list(map(lambda x: copy_tree(str(x), '/var/www/html'), [x for x in p('/.patch').glob('*') if str(x.name) == '${MAGENTO_VERSION}']))" \
     && if [ "$WITH_SAMPLEDATA" ] ; then \
         mkdir -p /var/www/html/var/composer_home \
-        && /var/www/html/bin/magento sampledata:deploy; \
+        && php -dmemory_limit=-1 /var/www/html/bin/magento sampledata:deploy; \
     fi \
     && apk --no-cache add --virtual .mysql mysql \
     && sh /tmp/create-install-dump.sh \
