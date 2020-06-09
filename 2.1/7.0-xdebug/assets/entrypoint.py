@@ -4,6 +4,7 @@ import shlex
 import time
 import pathlib
 import re
+import os
 
 @click.group()
 @click.pass_context
@@ -22,7 +23,7 @@ def execute(path, user, cmd):
 
 
 def set_ssh(user):
-    return subprocess.check_output('su {user} -c "sh /inject-ssh-keys.sh"'.format(user=user), shell=True)
+    os.system('su ' + str(user) + ' -c "sh /inject-ssh-keys.sh"')
 
 
 def set_password(user, password):
