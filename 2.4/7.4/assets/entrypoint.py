@@ -19,7 +19,7 @@ def cli(ctx):
 
 def execute(path, user, cmd):
     cmd = 'su {user} -c "php {path}/bin/magento %s"' % cmd
-    return subprocess.check_output(cmd.format(user=user, path=path), shell=True)
+    return subprocess.Popen(cmd.format(user=user, path=path), shell=True)
 
 
 def set_ssh(user):
@@ -48,6 +48,7 @@ def serve():
         subprocess.check_call("ssh-keygen -A", shell=True)
     subprocess.check_call("/usr/sbin/sshd -D -e & nginx -g \"daemon off;\" & docker-php-entrypoint php-fpm -R",
                           shell=True)
+
 
 
 @cli.command()
@@ -212,7 +213,7 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
                 query("DROP VIEW IF EXISTS {mysql_database}.%s" % v)
 
     click.echo("Re-creating admin account")
-    subprocess.check_output(
+    subprocess.Popen(
         'mysql -h{host} -u{user} -p{password} -e "USE {database}; DELETE FROM {mysql_prefix}admin_user"'.format(
             host=mysql_host,
             user=mysql_user,

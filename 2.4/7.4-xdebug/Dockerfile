@@ -21,7 +21,7 @@ ADD patch /.patch
 
 COPY assets/inject-ssh-keys.sh /inject-ssh-keys.sh
 
-RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server \
+RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server php7-zip php7-sockets\
     && VER=""\
     && rm -rf /var/www/html/* \
     && if [ "${MAGENTO_VERSION}" ] ; then\
@@ -38,8 +38,9 @@ RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server \
         && php -dmemory_limit=-1 /var/www/html/bin/magento sampledata:deploy; \
     fi \
     && apk --no-cache add --virtual .mysql mysql \
-    && sh /tmp/create-install-dump.sh \
-    && rm /tmp/create-install-dump.sh \
+    && sed -i 's/.*throw new ValidationException(__(implode(PHP_EOL, $validationErrors)));.*//'  setup/src/Magento/Setup/Model/SearchConfig.php
+RUN sh /tmp/create-install-dump.sh
+RUN rm /tmp/create-install-dump.sh \
     && rm -rf /.patch \
     && mkdir /run/sshd \
     && sed -i s/#PermitRootLogin.*/PermitRootLogin\ yes/ /etc/ssh/sshd_config \
@@ -54,5 +55,5 @@ COPY assets/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY assets/entrypoint.py /entrypoint.py
 
-ENTRYPOINT ["/usr/bin/python3", "/entrypoint.py"]
-CMD ["update_and_serve"]
+ENTRYPOINT ["python3", "/entrypoint.py"]
+CMD ["update-and-serve"]

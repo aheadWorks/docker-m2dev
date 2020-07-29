@@ -37,15 +37,16 @@ if [ ! -d "/run/mysqld" ]; then
 USE mysql;
 FLUSH PRIVILEGES;
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY "${MYSQL_ROOT_PASSWORD}" WITH GRANT OPTION;
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY "" WITH GRANT OPTION;
 UPDATE user SET password=PASSWORD("") WHERE user='root' AND host='localhost';
 EOF
   if [ "$MYSQL_DATABASE" != "" ]; then
     echo "[i] Creating database: $MYSQL_DATABASE"
     echo "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DATABASE\` CHARACTER SET utf8 COLLATE utf8_general_ci;" >> $tfile
   fi
-
-  /usr/bin/mysqld --user=root --bootstrap --verbose=0 < $tfile
+  cat $tfile
+  /usr/bin/mysqld --help
+  /usr/bin/mysqld --user=root --bootstrap --verbose=1 < $tfile
   rm -f $tfile
 
 /usr/bin/mysqld --user=root --console &
