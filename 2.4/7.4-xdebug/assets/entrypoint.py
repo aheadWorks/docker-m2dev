@@ -254,10 +254,25 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
     if len(opts.keys()):
         click.echo("Updating other params: %s" % ", ".join(opts.keys()))
         set_config_values(ctx.obj['MAGENTO_ROOT'], ctx.obj['WWW_USER'], mode='store-config', opts=opts)
+        os.system('echo \'{ "http-basic": { "repo.magento.com": { "username": "7e8a747bf495127b5c4bbe0b424e7d1e", "password": "d0a8399328e2dfcd7875d286bac1f776" } } }\'  > /var/www/html/auth.json')
 
     click.echo("Cleaning up cache")
     execute(ctx.obj['MAGENTO_ROOT'],
             ctx.obj['WWW_USER'], 'cache:clean')
+    out = subprocess.Popen(
+        ['/var/www/html/bin/magento', 'config:show', 'catalog/search/elasticsearch7_server_hostname'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT)
+    stdout, stderr = out.communicate()
+    if not stdout == "elasticsearch7":
+        p1 = subprocess.Popen(
+            ["php", "/var/www/html/bin/magento", "config:set", "catalog/search/elasticsearch7_server_hostname",
+             "elasticsearch7"])
+        p1.wait()
+        p2 = subprocess.Popen(["php", "-d", "memory_limit=4G", "/var/www/html/bin/magento", "sampledata:deploy"])
+        p2.wait()
+        p3 = subprocess.Popen(["php", "-d", "memory_limit=4G", "/var/www/html/bin/magento", "setup:upgrade"])
+        p3.wait()
 
     serve()
 

@@ -33,10 +33,10 @@ RUN apk add --no-cache mariadb-client unzip openssh-server openssh-sftp-server p
     && chmod u+x bin/magento \
     && COMPOSER_MEMORY_LIMIT=-1  composer install \
     && python3 -c "from pathlib import Path as p; from distutils.dir_util import copy_tree; list(map(lambda x: copy_tree(str(x), '/var/www/html'), [x for x in p('/.patch').glob('*') if str(x.name) == '${MAGENTO_VERSION}']))" \
-    && if [ "$WITH_SAMPLEDATA" ] ; then \
-        mkdir -p /var/www/html/var/composer_home \
-        && php -dmemory_limit=-1 /var/www/html/bin/magento sampledata:deploy; \
-    fi \
+#    && if [ "$WITH_SAMPLEDATA" ] ; then \
+#        mkdir -p /var/www/html/var/composer_home \
+#        && php -dmemory_limit=-1 /var/www/html/bin/magento sampledata:deploy; \
+#    fi \
     && apk --no-cache add --virtual .mysql mysql \
     && sed -i 's/.*throw new ValidationException(__(implode(PHP_EOL, $validationErrors)));.*//'  setup/src/Magento/Setup/Model/SearchConfig.php
 RUN sh /tmp/create-install-dump.sh
@@ -54,6 +54,9 @@ RUN ssh-keygen -A
 COPY assets/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY assets/entrypoint.py /entrypoint.py
+RUN if ! [ "$WITH_SAMPLEDATA" ] ; then \
+        sed -i".bak" '274,278d' /entrypoint.py; \
+        fi
 
 ENTRYPOINT ["python3", "/entrypoint.py"]
 CMD ["update-and-serve"]
