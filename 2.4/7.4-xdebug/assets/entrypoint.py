@@ -211,60 +211,75 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
                 query(crv)
                 query("DROP VIEW IF EXISTS {mysql_database}.%s" % v)
 
-    click.echo("Re-creating admin account")
-    subprocess.Popen(
-        'mysql -h{host} -u{user} -p{password} -e "USE {database}; DELETE FROM {mysql_prefix}admin_user"'.format(
-            host=mysql_host,
-            user=mysql_user,
-            password=mysql_password,
-            database=mysql_database,
-            mysql_prefix=mysql_prefix
-        ),
-        shell=True
-    )
-
-    execute(
-        ctx.obj['MAGENTO_ROOT'],
-        ctx.obj['WWW_USER'],
-        (
-            "admin:user:create"
-            " --admin-firstname={magento_admin_firstname}"
-            " --admin-lastname={magento_admin_lastname}"
-            " --admin-email={magento_admin_email}"
-            " --admin-user={magento_admin_username}"
-            " --admin-password={magento_admin_password}"
+    try:
+        is_exists = subprocess.Popen((
+            "mysql"
+            " -u{mysql_user}"
+            " -p{mysql_password}"
+            " -h{mysql_host}"
+            " {mysql_database} -e \"select * from {mysql_prefix}admin_user where user_id > 1\""
         ).format(
-            magento_admin_firstname=magento_admin_firstname,
-            magento_admin_lastname=magento_admin_lastname,
-            magento_admin_email=magento_admin_email,
-            magento_admin_username=magento_admin_username,
-            magento_admin_password=magento_admin_password
+            mysql_user=mysql_user,
+            mysql_password=mysql_password,
+            mysql_host=mysql_host,
+            mysql_database=mysql_database,
+            mysql_prefix=mysql_prefix,
+        ), stdout=subprocess.PIPE,  stderr=subprocess.STDOUT, shell=True)
+        stdout, stderr = is_exists.communicate()
+        is_exists = not str(stdout) == "b''"
+    except subprocess.CalledProcessError as e:
+        is_exists = False
+    if not is_exists:
+        click.echo("Re-creating admin account")
+        subprocess.Popen(
+            'mysql -h{host} -u{user} -p{password} -e "USE {database}; DELETE FROM {mysql_prefix}admin_user"'.format(
+                host=mysql_host,
+                user=mysql_user,
+                password=mysql_password,
+                database=mysql_database,
+                mysql_prefix=mysql_prefix
+            ),
+            shell=True
         )
-    )
+
+        execute(
+            ctx.obj['MAGENTO_ROOT'],
+            ctx.obj['WWW_USER'],
+            (
+                "admin:user:create"
+                " --admin-firstname={magento_admin_firstname}"
+                " --admin-lastname={magento_admin_lastname}"
+                " --admin-email={magento_admin_email}"
+                " --admin-user={magento_admin_username}"
+                " --admin-password={magento_admin_password}"
+            ).format(
+                magento_admin_firstname=magento_admin_firstname,
+                magento_admin_lastname=magento_admin_lastname,
+                magento_admin_email=magento_admin_email,
+                magento_admin_username=magento_admin_username,
+                magento_admin_password=magento_admin_password
+            )
+        )
 
     opts = {}
-    if magento_url:
-        opts['base-url'] = magento_url
-    if magento_language:
-        opts['language'] = magento_language
-    if magento_default_currency:
-        opts['currency'] = magento_default_currency
-    if magento_timezone:
-        opts['timezone'] = magento_timezone
-    if len(opts.keys()):
-        click.echo("Updating other params: %s" % ", ".join(opts.keys()))
-        set_config_values(ctx.obj['MAGENTO_ROOT'], ctx.obj['WWW_USER'], mode='store-config', opts=opts)
-        os.system('echo \'{ "http-basic": { "repo.magento.com": { "username": "7e8a747bf495127b5c4bbe0b424e7d1e", "password": "d0a8399328e2dfcd7875d286bac1f776" } } }\'  > /var/www/html/auth.json')
+    if not is_exists:
+        if magento_url:
+            opts['base-url'] = magento_url
+        if magento_language:
+            opts['language'] = magento_language
+        if magento_default_currency:
+            opts['currency'] = magento_default_currency
+        if magento_timezone:
+            opts['timezone'] = magento_timezone
+        if len(opts.keys()):
+            click.echo("Updating other params: %s" % ", ".join(opts.keys()))
+            set_config_values(ctx.obj['MAGENTO_ROOT'], ctx.obj['WWW_USER'], mode='store-config', opts=opts)
+            os.system('echo \'{ "http-basic": { "repo.magento.com": { "username": "7e8a747bf495127b5c4bbe0b424e7d1e", "password": "d0a8399328e2dfcd7875d286bac1f776" } } }\'  > /var/www/html/auth.json')
 
-    click.echo("Cleaning up cache")
-    execute(ctx.obj['MAGENTO_ROOT'],
-            ctx.obj['WWW_USER'], 'cache:clean')
-    out = subprocess.Popen(
-        ['/var/www/html/bin/magento', 'config:show', 'catalog/search/elasticsearch7_server_hostname'],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT)
-    stdout, stderr = out.communicate()
-    if not stdout == "elasticsearch7":
+        click.echo("Cleaning up cache")
+        execute(ctx.obj['MAGENTO_ROOT'],
+                ctx.obj['WWW_USER'], 'cache:clean')
+
         p1 = subprocess.Popen(
             ["php", "/var/www/html/bin/magento", "config:set", "catalog/search/elasticsearch7_server_hostname",
              "elasticsearch7"])
