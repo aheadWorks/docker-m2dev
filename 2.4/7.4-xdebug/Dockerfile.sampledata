@@ -51,11 +51,14 @@ RUN rm /tmp/create-install-dump.sh \
 
 RUN ssh-keygen -A
 
+
+
 COPY assets/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY assets/entrypoint.py /entrypoint.py
-RUN if [! "$WITH_SAMPLEDATA" ] ; then \
-        sed -i".bak" '284,293d' /entrypoint.py; \
+RUN if [ ! "$WITH_SAMPLEDATA" ] ; then \
+        sed -i 's/.*p2 = subprocess\.Popen(["php", "-d", "memory_limit=4G", "\/var\/www\/html\/bin\/magento", "sampledata:deploy"]).*//'  /entrypoint.py \
+        && sed -i 's/.*        sampledata()*//'  /entrypoint.py; \
         fi
 
 ENTRYPOINT ["python3", "/entrypoint.py"]
