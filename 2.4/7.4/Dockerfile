@@ -57,7 +57,7 @@ COPY assets/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY assets/entrypoint.py /entrypoint.py
 RUN if ! [ "$WITH_SAMPLEDATA" ] ; then \
-        sed -i".bak" '274,278d' /entrypoint.py; \
+        sed -i".bak" '284,293' /entrypoint.py; \
         fi
 
 ENTRYPOINT ["python3", "/entrypoint.py"]
