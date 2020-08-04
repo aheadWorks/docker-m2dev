@@ -16,6 +16,11 @@ def cli(ctx):
     subprocess.check_call("sh /update-host-machine.sh", shell=True)
     pass
 
+def sampledata():
+    p2 = subprocess.Popen(["php", "-d", "memory_limit=4G", "/var/www/html/bin/magento", "sampledata:deploy"])
+    p2.wait()
+    p3 = subprocess.Popen(["php", "-d", "memory_limit=4G", "/var/www/html/bin/magento", "setup:upgrade"])
+    p3.wait()
 
 def execute(path, user, cmd):
     cmd = 'su {user} -c "php {path}/bin/magento %s"' % cmd
@@ -284,10 +289,7 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
             ["php", "/var/www/html/bin/magento", "config:set", "catalog/search/elasticsearch7_server_hostname",
              "elasticsearch7"])
         p1.wait()
-        p2 = subprocess.Popen(["php", "-d", "memory_limit=4G", "/var/www/html/bin/magento", "sampledata:deploy"])
-        p2.wait()
-        p3 = subprocess.Popen(["php", "-d", "memory_limit=4G", "/var/www/html/bin/magento", "setup:upgrade"])
-        p3.wait()
+        sampledata()
 
     serve()
 

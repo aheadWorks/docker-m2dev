@@ -55,4 +55,4 @@ COPY assets/nginx.conf /etc/nginx/conf.d/default.conf
 COPY assets/entrypoint.py /entrypoint.py
 
 ENTRYPOINT ["/usr/bin/python3", "/entrypoint.py"]
-CMD ["update_and_serve"]
+CMD ["update-and-serve"]
