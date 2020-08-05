@@ -37,8 +37,8 @@ if [ ! -d "/run/mysqld" ]; then
 USE mysql;
 FLUSH PRIVILEGES;
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY "${MYSQL_ROOT_PASSWORD}" WITH GRANT OPTION;
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
-UPDATE user SET password=PASSWORD("") WHERE user='root' AND host='localhost';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' INDITIFIED BY ""  WITH GRANT OPTION;
+
 EOF
   if [ "$MYSQL_DATABASE" != "" ]; then
     echo "[i] Creating database: $MYSQL_DATABASE"
