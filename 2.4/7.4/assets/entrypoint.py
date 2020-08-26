@@ -320,6 +320,8 @@ def update_and_serve(ctx, ssh_password, mysql_host, mysql_port, mysql_user, mysq
         p1.wait()
         sampledata()
         install_modules()
+        os.system('/var/www/html/bin/magento config:set admin/security/session_lifetime 31536000')
+        os.system('/var/www/html/bin/magento config:set admin/security/admin_account_sharing 1')
 
     serve()
 
